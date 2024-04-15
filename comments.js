@@ -44,4 +44,6 @@ var server = http.createServer(function(req, res){
         res.end('Not Found');
     }
 });
-server.listen(3000)
+server.listen(3000,() =>{
+    console.log("running on the port 3000")
+});
