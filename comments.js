@@ -1,48 +1,47 @@
 //Create Web Server
-const express = require('express');
-const app = express();
-const path = require('path');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../public')));
-
-//GET Request
-app.get('/comments', (req, res) => {
-  fs.readFile(path.join(__dirname, '../database/comments.json'), (err, data) => {
-    if (err) {
-      console.log('Error reading file: ', err);
-    } else {
-      res.send(data);
-    }
-  });
-});
-
-//POST Request
-app.post('/comments', (req, res) => {
-  fs.readFile(path.join(__dirname, '../database/comments.json'), (err, data) => {
-    if (err) {
-      console.log('Error reading file: ', err);
-    } else {
-      let comments = JSON.parse(data);
-      comments.push(req.body);
-
-      fs.writeFile(path.join(__dirname, '../database/comments.json'), JSON.stringify(comments), (err) => {
-        if (err) {
-          console.log('Error writing file: ', err);
-        } else {
-          res.send('Comment added!');
+var http = require('http');
+var fs = require('fs');
+var url = require('url');
+var qs = require('querystring');
+var comments = [];
+var server = http.createServer(function(req, res){
+    var parseUrl = url.parse(req.url, true);
+    var pathname = parseUrl.pathname;
+    if(pathname === '/'){
+        fs.readFile('./index.html', function(err, data){
+            if(err){
+                console.log(err);
+                res.end('Server Error');
+            }
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end(data);
+        });
+    }else if(pathname === '/comments'){
+        if(req.method === 'GET'){
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            var query = parseUrl.query;
+            var comment = query.comment;
+            if(comment){
+                comments.push(comment);
+            }
+            res.end(comments.join('\n'));
+        }else if(req.method === 'POST'){
+            var postData = '';
+            req.setEncoding('utf8');
+            req.on('data', function(chunk){
+                postData += chunk;
+            });
+            req.on('end', function(){
+                var query = qs.parse(postData);
+                var comment = query.comment;
+                comments.push(comment);
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(comments.join('\n'));
+            });
         }
-      });
+    }else{
+        res.writeHead(404, {'Content-Type': 'text/plain'});
+        res.end('Not Found');
     }
-  });
 });
-
-//Server
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running and listening on port ${PORT}`);
-});
+server.listen(3000)
